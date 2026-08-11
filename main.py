@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header
 
-from auth import supabase, sign_up_user, sign_in_user
+from auth import supabase, sign_up_user, sign_in_user, get_user_from_token
 from models import SignupRequest, LoginRequest
 
 app = FastAPI(title="Auth Login & Protect API")
@@ -57,5 +57,18 @@ def protected_profile(authorization: str = Header(default=None)):
     if not token:
         raise HTTPException(status_code=401, detail="Access token required")
 
-    
-    return {"message": "Token received (not yet verified)"}
+    try:
+        response = get_user_from_token(token)
+        user = response.user
+        if user is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    return {
+        "id": user.id,
+        "email": user.email,
+        "created_at": user.created_at,
+    }
