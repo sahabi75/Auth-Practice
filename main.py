@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 
 from auth import supabase, sign_up_user, sign_in_user
 from models import SignupRequest, LoginRequest
@@ -41,3 +41,21 @@ def login(payload: LoginRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid login credentials")
+
+
+@app.get("/public/info")
+def public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+
+@app.get("/protected/profile")
+def protected_profile(authorization: str = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Access token required")
+
+    token = authorization.split(" ")[1]
+    if not token:
+        raise HTTPException(status_code=401, detail="Access token required")
+
+    
+    return {"message": "Token received (not yet verified)"}
