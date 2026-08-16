@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Depends
 
-from auth import supabase, sign_up_user, sign_in_user, get_user_from_token
+from auth import sign_up_user, sign_in_user, sign_out_user
+from dependencies import get_current_user
 from models import SignupRequest, LoginRequest
 
 app = FastAPI(title="Auth Login & Protect API")
@@ -43,32 +44,26 @@ def login(payload: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid login credentials")
 
 
+@app.post("/auth/logout", status_code=204)
+def logout(user=Depends(get_current_user)):
+    sign_out_user(None)
+    return
+
+
 @app.get("/public/info")
 def public_info():
     return {"message": "Welcome stranger! This info is public."}
 
 
 @app.get("/protected/profile")
-def protected_profile(authorization: str = Header(default=None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token required")
-
-    token = authorization.split(" ")[1]
-    if not token:
-        raise HTTPException(status_code=401, detail="Access token required")
-
-    try:
-        response = get_user_from_token(token)
-        user = response.user
-        if user is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
+def protected_profile(user=Depends(get_current_user)):
     return {
         "id": user.id,
         "email": user.email,
         "created_at": user.created_at,
     }
+
+
+@app.get("/protected/dashboard")
+def protected_dashboard(user=Depends(get_current_user)):
+    return {"message": f"Welcome to your dashboard, {user.email}!"}
