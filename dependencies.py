@@ -1,16 +1,14 @@
-from fastapi import Header, HTTPException
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from auth import get_user_from_token
 
+security = HTTPBearer()
 
-def get_current_user(authorization: str = Header(default=None)):
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token required")
-
-    token = authorization.split(" ")[1]
-    if not token:
-        raise HTTPException(status_code=401, detail="Access token required")
+    token = credentials.credentials
 
     try:
         response = get_user_from_token(token)
